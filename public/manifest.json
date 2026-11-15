@@ -1,0 +1,18 @@
+{
+  "name": "Gestión de Artículos de Pesca",
+  "short_name": "Pesca Gestión",
+  "description": "Control de stock, ventas y clientes para artículos de pesca sincronizado entre dispositivos.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#1e293b",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

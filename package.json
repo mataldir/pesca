@@ -1,0 +1,12 @@
+{
+  "name": "pesca-gestion-pwa",
+  "version": "1.0.0",
+  "description": "Sistema web (PWA) para gestión de stock, ventas y clientes de artículos de pesca con sincronización multi-dispositivo",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

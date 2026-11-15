@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#1e293b" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Gestión de Pesca — Stock, Ventas y Clientes</title>
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+  <link rel="apple-touch-icon" href="/icon.svg" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <!-- Top Bar -->
+  <header class="topbar">
+    <div class="topbar-brand">
+      <img src="/icon.svg" alt="Icono" class="brand-icon" />
+      <div>
+        <h1 id="businessTitle" class="brand-title">Pesca &amp; Aventura</h1>
+        <span class="brand-subtitle">Stock · Ventas · Clientes</span>
+      </div>
+    </div>
+
+    <!-- Desktop Navigation -->
+    <nav class="desktop-nav" aria-label="Navegación principal">
+      <button type="button" class="nav-btn active" data-tab="pos">
+        <span>Nueva Venta</span>
+      </button>
+      <button type="button" class="nav-btn" data-tab="stock">
+        <span>Stock</span>
+        <span id="navLowStockBadge" class="badge badge-warn hidden">0</span>
+      </button>
+      <button type="button" class="nav-btn" data-tab="clients">
+        <span>Clientes</span>
+      </button>
+      <button type="button" class="nav-btn" data-tab="sales">
+        <span>Historial Ventas</span>
+      </button>
+    </nav>
+
+    <div class="topbar-actions">
+      <button type="button" id="btnInstallPwa" class="btn btn-outline btn-sm hidden" title="Instalar como aplicación en este dispositivo">
+        Instalar App
+      </button>
+      <button type="button" id="btnLowStockQuick" class="alert-pill hidden" title="Ver artículos con stock bajo">
+        <span id="lowStockQuickText">0 en stock bajo</span>
+      </button>
+      <button type="button" id="btnSyncModal" class="sync-pill" title="Estado de sincronización entre dispositivos y nube">
+        <span id="syncDot" class="sync-dot online"></span>
+        <span id="syncStatusText">Sincronizado</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <main class="main-container">
+    <!-- ==================== TAB 1: PUNTO DE VENTA (NUEVA VENTA) ==================== -->
+    <section id="tab-pos" class="tab-panel active">
+      <div class="pos-layout">
+        <!-- Left: Catalog picker -->
+        <div class="card pos-catalog-card">
+          <div class="card-header">
+            <h2 class="card-title">Seleccionar Artículos</h2>
+            <button type="button" id="btnAddManualItem" class="btn btn-secondary btn-sm">
+              + Ítem manual
+            </button>
+          </div>
+
+          <div class="search-row">
+            <input
+              type="search"
+              id="posSearchInput"
+              class="input"
+              placeholder="Buscar reel, caña, anzuelo, señuelo, código..."
+              autocomplete="off"
+            />
+          </div>
+
+          <div id="posCategoryBar" class="category-chips"></div>
+
+          <div id="posProductList" class="pos-product-list">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+
+        <!-- Right: Active Sale Ticket -->
+        <div class="card pos-ticket-card" id="posTicketSection">
+          <div class="card-header">
+            <h2 class="card-title">Venta Actual</h2>
+            <button type="button" id="btnClearCart" class="btn btn-ghost btn-sm">
+              Vaciar
+            </button>
+          </div>
+
+          <!-- Cart Items -->
+          <div id="cartItemsContainer" class="cart-items-container">
+            <!-- Rendered by JS -->
+          </div>
+
+          <!-- Client Selector -->
+          <div class="ticket-section">
+            <div class="section-label-row">
+              <label for="posClientSelect" class="field-label">Cliente de la compra</label>
+              <button type="button" id="btnToggleQuickClient" class="btn-link">
+                + Nuevo cliente rápido
+              </button>
+            </div>
+            <select id="posClientSelect" class="input">
+              <option value="">Cliente Ocasional / Mostrador</option>
+            </select>
+
+            <!-- Quick New Client Box -->
+            <div id="quickClientBox" class="quick-client-box hidden">
+              <div class="form-grid-2">
+                <div>
+                  <label class="field-label-sm" for="quickClientName">Nombre y Apellido *</label>
+                  <input type="text" id="quickClientName" class="input input-sm" placeholder="Ej: Juan Pérez" />
+                </div>
+                <div>
+                  <label class="field-label-sm" for="quickClientPhone">WhatsApp / Teléfono</label>
+                  <input type="tel" id="quickClientPhone" class="input input-sm" placeholder="Ej: 11 2345 6789" />
+                </div>
+              </div>
+              <div class="quick-client-actions">
+                <span class="text-muted text-xs">Se guardará automáticamente en la lista de clientes al registrar la venta.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Payment & Discount -->
+          <div class="ticket-section form-grid-2">
+            <div>
+              <label for="posPaymentMethod" class="field-label-sm">Medio de pago</label>
+              <select id="posPaymentMethod" class="input input-sm">
+                <option value="Efectivo">Efectivo</option>
+                <option value="Transferencia">Transferencia</option>
+                <option value="Mercado Pago">Mercado Pago</option>
+                <option value="Tarjeta / Débito">Tarjeta / Débito</option>
+                <option value="Otro">Otro</option>
+              </select>
+            </div>
+            <div>
+              <label for="posDiscountInput" class="field-label-sm">Descuento ($)</label>
+              <input
+                type="number"
+                id="posDiscountInput"
+                class="input input-sm"
+                min="0"
+                step="100"
+                value="0"
+                placeholder="0"
+              />
+            </div>
+          </div>
+
+          <div class="ticket-section">
+            <label for="posSaleNotes" class="field-label-sm">Nota de la venta (opcional)</label>
+            <input
+              type="text"
+              id="posSaleNotes"
+              class="input input-sm"
+              placeholder="Ej: Retira mañana, envío por encomienda, etc."
+            />
+          </div>
+
+          <!-- Total Calculation Summary -->
+          <div class="ticket-totals">
+            <div class="totals-row">
+              <span>Artículos / Unidades:</span>
+              <span id="cartTotalUnits">0</span>
+            </div>
+            <div class="totals-row" id="cartSubtotalRow">
+              <span>Subtotal:</span>
+              <span id="cartSubtotalAmount">$0</span>
+            </div>
+            <div class="totals-row total-final">
+              <span>PRECIO TOTAL:</span>
+              <span id="cartTotalAmount">$0</span>
+            </div>
+          </div>
+
+          <button type="button" id="btnConfirmSale" class="btn btn-primary btn-lg btn-block" disabled>
+            Confirmar Venta ($0)
+          </button>
+        </div>
+      </div>
+
+      <!-- Mobile Sticky Bar to jump to Cart -->
+      <div id="mobileCartBar" class="mobile-cart-bar hidden">
+        <div class="mobile-cart-info">
+          <span id="mobileCartCount">0 unid.</span>
+          <strong id="mobileCartTotal">$0</strong>
+        </div>
+        <button type="button" id="btnScrollToTicket" class="btn btn-primary btn-sm">
+          Ver pedido / Cobrar ↓
+        </button>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 2: CONTROL DE STOCK ==================== -->
+    <section id="tab-stock" class="tab-panel">
+      <div class="panel-header">
+        <div>
+          <h2 class="panel-title">Inventario y Control de Stock</h2>
+          <p class="panel-subtitle">Artículos a la venta, cantidades disponibles y alertas de reposición</p>
+        </div>
+        <div class="panel-actions">
+          <button type="button" id="btnNewProduct" class="btn btn-primary">
+            + Nuevo Artículo
+          </button>
+        </div>
+      </div>
+
+      <!-- Summary Strip -->
+      <div class="stats-strip">
+        <div class="stat-box">
+          <span class="stat-label">Artículos registrados</span>
+          <strong id="statTotalProducts" class="stat-value">0</strong>
+        </div>
+        <div class="stat-box">
+          <span class="stat-label">Unidades totales</span>
+          <strong id="statTotalUnits" class="stat-value">0</strong>
+        </div>
+        <div class="stat-box stat-box-warn" id="statLowStockBox">
+          <span class="stat-label">En alerta de stock bajo</span>
+          <strong id="statLowStockCount" class="stat-value">0</strong>
+        </div>
+        <div class="stat-box">
+          <span class="stat-label">Valorizado de stock</span>
+          <strong id="statInventoryValue" class="stat-value">$0</strong>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="card filter-bar">
+        <div class="filter-controls">
+          <input
+            type="search"
+            id="stockSearchInput"
+            class="input"
+            placeholder="Buscar por nombre, categoría, código o nota..."
+          />
+          <select id="stockCategorySelect" class="input">
+            <option value="ALL">Todas las categorías</option>
+          </select>
+          <label class="checkbox-pill">
+            <input type="checkbox" id="stockLowOnlyCheckbox" />
+            <span>Solo stock bajo / agotados</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Stock Table / Cards -->
+      <div class="card table-card">
+        <div class="table-responsive">
+          <table class="data-table" id="stockTable">
+            <thead>
+              <tr>
+                <th>Código / Artículo</th>
+                <th>Categoría</th>
+                <th class="text-right">Precio Venta</th>
+                <th class="text-center">Cantidad (Stock)</th>
+                <th class="text-center">Estado</th>
+                <th class="text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="stockTableBody">
+              <!-- Rendered by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 3: CLIENTES E HISTORIAL ==================== -->
+    <section id="tab-clients" class="tab-panel">
+      <div class="panel-header">
+        <div>
+          <h2 class="panel-title">Clientes e Historial de Operaciones</h2>
+          <p class="panel-subtitle">Consultá las compras anteriores de cada cliente y sus datos de contacto</p>
+        </div>
+        <div class="panel-actions">
+          <button type="button" id="btnNewClient" class="btn btn-primary">
+            + Nuevo Cliente
+          </button>
+        </div>
+      </div>
+
+      <div class="clients-layout">
+        <!-- Left: Clients Directory -->
+        <div class="card clients-list-card">
+          <div class="search-row">
+            <input
+              type="search"
+              id="clientSearchInput"
+              class="input"
+              placeholder="Buscar cliente por nombre, teléfono o nota..."
+            />
+          </div>
+          <div id="clientsListContainer" class="clients-list">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+
+        <!-- Right: Selected Client Details & Purchase History -->
+        <div class="card client-detail-card" id="clientDetailCard">
+          <div id="clientDetailContent">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 4: HISTORIAL GENERAL DE VENTAS ==================== -->
+    <section id="tab-sales" class="tab-panel">
+      <div class="panel-header">
+        <div>
+          <h2 class="panel-title">Historial de Ventas</h2>
+          <p class="panel-subtitle">Registro de todas las ventas realizadas, comprobantes y totales</p>
+        </div>
+      </div>
+
+      <div class="stats-strip">
+        <div class="stat-box">
+          <span class="stat-label">Ventas de hoy</span>
+          <strong id="statSalesTodayAmount" class="stat-value">$0</strong>
+          <span id="statSalesTodayCount" class="stat-meta">0 operaciones</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-label">Ventas últimos 30 días</span>
+          <strong id="statSalesMonthAmount" class="stat-value">$0</strong>
+          <span id="statSalesMonthCount" class="stat-meta">0 operaciones</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-label">Total histórico acumulado</span>
+          <strong id="statSalesTotalAmount" class="stat-value">$0</strong>
+          <span id="statSalesTotalCount" class="stat-meta">0 operaciones</span>
+        </div>
+      </div>
+
+      <div class="card filter-bar">
+        <div class="filter-controls">
+          <input
+            type="search"
+            id="salesSearchInput"
+            class="input"
+            placeholder="Buscar por cliente, artículo vendido, Nº de venta o medio de pago..."
+          />
+        </div>
+      </div>
+
+      <div id="salesHistoryList" class="sales-list">
+        <!-- Rendered by JS -->
+      </div>
+    </section>
+  </main>
+
+  <!-- Mobile Bottom Navigation -->
+  <nav class="mobile-bottom-nav" aria-label="Menú móvil">
+    <button type="button" class="mobile-nav-btn active" data-tab="pos">
+      <span class="mobile-nav-icon">＋</span>
+      <span>Vender</span>
+    </button>
+    <button type="button" class="mobile-nav-btn" data-tab="stock">
+      <span class="mobile-nav-icon">📦</span>
+      <span>Stock</span>
+      <span id="mobileLowStockBadge" class="mobile-badge hidden">0</span>
+    </button>
+    <button type="button" class="mobile-nav-btn" data-tab="clients">
+      <span class="mobile-nav-icon">👥</span>
+      <span>Clientes</span>
+    </button>
+    <button type="button" class="mobile-nav-btn" data-tab="sales">
+      <span class="mobile-nav-icon">📋</span>
+      <span>Ventas</span>
+    </button>
+  </nav>
+
+  <!-- ==================== MODAL: ARTÍCULO (ALTA / EDICIÓN) ==================== -->
+  <div id="productModal" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="productModalTitle">Nuevo Artículo de Pesca</h3>
+        <button type="button" class="modal-close" data-close="productModal">✕</button>
+      </div>
+      <form id="productForm" class="modal-body">
+        <input type="hidden" id="prodId" />
+        <div class="form-grid-2">
+          <div>
+            <label for="prodName" class="field-label">Nombre del artículo *</label>
+            <input type="text" id="prodName" class="input" required placeholder="Ej: Reel Frontal 4000" />
+          </div>
+          <div>
+            <label for="prodCode" class="field-label">Código / Referencia</label>
+            <input type="text" id="prodCode" class="input" placeholder="Ej: R-001 (opcional)" />
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div>
+            <label for="prodCategory" class="field-label">Categoría</label>
+            <input
+              type="text"
+              id="prodCategory"
+              list="categorySuggestions"
+              class="input"
+              placeholder="Ej: Reels, Cañas, Señuelos..."
+            />
+            <datalist id="categorySuggestions">
+              <option value="Reels"></option>
+              <option value="Cañas"></option>
+              <option value="Mosquetones"></option>
+              <option value="Anzuelos"></option>
+              <option value="Señuelos"></option>
+              <option value="Líneas y Tanzas"></option>
+              <option value="Plomadas y Boyas"></option>
+              <option value="Accesorios"></option>
+              <option value="Otros"></option>
+            </datalist>
+          </div>
+          <div>
+            <label for="prodUnit" class="field-label">Presentación / Unidad</label>
+            <input type="text" id="prodUnit" class="input" placeholder="unid., blíster, sobre, rollo..." value="unid." />
+          </div>
+        </div>
+
+        <div class="form-grid-3">
+          <div>
+            <label for="prodPrice" class="field-label">Precio de Venta ($) *</label>
+            <input type="number" id="prodPrice" class="input" min="0" step="any" required placeholder="0" />
+          </div>
+          <div>
+            <label for="prodStock" class="field-label">Cantidad actual *</label>
+            <input type="number" id="prodStock" class="input" min="0" step="1" required placeholder="0" />
+          </div>
+          <div>
+            <label for="prodMinStock" class="field-label">Alerta stock mínimo</label>
+            <input type="number" id="prodMinStock" class="input" min="0" step="1" value="3" />
+          </div>
+        </div>
+
+        <div>
+          <label for="prodNotes" class="field-label">Notas / Descripción</label>
+          <input type="text" id="prodNotes" class="input" placeholder="Ej: Medida, marca, proveedor..." />
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" id="btnDeleteProduct" class="btn btn-danger hidden">Eliminar</button>
+          <div class="modal-footer-right">
+            <button type="button" class="btn btn-secondary" data-close="productModal">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Guardar Artículo</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: INGRESO RÁPIDO DE STOCK ==================== -->
+  <div id="stockAdjustModal" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+    <div class="modal-card modal-sm">
+      <div class="modal-header">
+        <h3 id="stockAdjustTitle">Ajustar Stock</h3>
+        <button type="button" class="modal-close" data-close="stockAdjustModal">✕</button>
+      </div>
+      <form id="stockAdjustForm" class="modal-body">
+        <input type="hidden" id="adjustProdId" />
+        <p id="adjustProdName" class="font-semibold"></p>
+        <p class="text-muted text-sm">Stock actual: <strong id="adjustCurrentStock">0</strong></p>
+
+        <div class="form-grid-2">
+          <div>
+            <label for="adjustDeltaInput" class="field-label">Sumar unidades (+)</label>
+            <input type="number" id="adjustDeltaInput" class="input" step="1" value="5" />
+          </div>
+          <div>
+            <label for="adjustNewPriceInput" class="field-label">Precio de venta ($)</label>
+            <input type="number" id="adjustNewPriceInput" class="input" min="0" step="any" />
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <div class="modal-footer-right">
+            <button type="button" class="btn btn-secondary" data-close="stockAdjustModal">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Aplicar ingreso</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: CLIENTE (ALTA / EDICIÓN) ==================== -->
+  <div id="clientModal" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+    <div class="modal-card modal-sm">
+      <div class="modal-header">
+        <h3 id="clientModalTitle">Nuevo Cliente</h3>
+        <button type="button" class="modal-close" data-close="clientModal">✕</button>
+      </div>
+      <form id="clientForm" class="modal-body">
+        <input type="hidden" id="clientId" />
+        <div>
+          <label for="clientName" class="field-label">Nombre y Apellido *</label>
+          <input type="text" id="clientName" class="input" required placeholder="Ej: Roberto Sánchez" />
+        </div>
+        <div>
+          <label for="clientPhone" class="field-label">Teléfono / WhatsApp</label>
+          <input type="tel" id="clientPhone" class="input" placeholder="Ej: 5491144556677" />
+          <span class="field-hint">Incluí código de área para enviarle comprobantes directo por WhatsApp.</span>
+        </div>
+        <div>
+          <label for="clientNotes" class="field-label">Notas (preferencias, localidad, etc.)</label>
+          <textarea id="clientNotes" class="input" rows="2" placeholder="Ej: Cliente mayorista / pesca de costa"></textarea>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" id="btnDeleteClient" class="btn btn-danger hidden">Eliminar</button>
+          <div class="modal-footer-right">
+            <button type="button" class="btn btn-secondary" data-close="clientModal">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Guardar Cliente</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: COMPROBANTE DE VENTA / WHATSAPP ==================== -->
+  <div id="receiptModal" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="receiptModalTitle">Comprobante de Venta</h3>
+        <button type="button" class="modal-close" data-close="receiptModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <pre id="receiptTextPreview" class="receipt-preview"></pre>
+
+        <div class="receipt-actions">
+          <button type="button" id="btnShareWhatsApp" class="btn btn-whatsapp btn-lg btn-block">
+            Enviar resumen por WhatsApp
+          </button>
+          <div class="form-grid-2">
+            <button type="button" id="btnCopyReceipt" class="btn btn-secondary btn-block">
+              Copiar texto
+            </button>
+            <button type="button" id="btnPrintReceipt" class="btn btn-secondary btn-block">
+              Imprimir / PDF
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <div class="modal-footer-right">
+          <button type="button" class="btn btn-primary" data-close="receiptModal">Cerrar y continuar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: ÍTEM MANUAL EN VENTA ==================== -->
+  <div id="manualItemModal" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+    <div class="modal-card modal-sm">
+      <div class="modal-header">
+        <h3>Agregar Ítem Manual a la Venta</h3>
+        <button type="button" class="modal-close" data-close="manualItemModal">✕</button>
+      </div>
+      <form id="manualItemForm" class="modal-body">
+        <div>
+          <label for="manualItemName" class="field-label">Concepto / Artículo *</label>
+          <input type="text" id="manualItemName" class="input" required placeholder="Ej: Armado de línea / Reparación pasahilo" />
+        </div>
+        <div class="form-grid-2">
+          <div>
+            <label for="manualItemPrice" class="field-label">Precio unitario ($) *</label>
+            <input type="number" id="manualItemPrice" class="input" min="0" step="any" required placeholder="0" />
+          </div>
+          <div>
+            <label for="manualItemQty" class="field-label">Cantidad *</label>
+            <input type="number" id="manualItemQty" class="input" min="1" step="1" value="1" required />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <div class="modal-footer-right">
+            <button type="button" class="btn btn-secondary" data-close="manualItemModal">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Agregar a la venta</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: SINCRONIZACIÓN Y CONFIGURACIÓN ==================== -->
+  <div id="syncModal" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Sincronización Multi-Dispositivo y Ajustes</h3>
+        <button type="button" class="modal-close" data-close="syncModal">✕</button>
+      </div>
+      <div class="modal-body sync-modal-body">
+        <!-- Business Name -->
+        <div class="sync-block">
+          <h4>Nombre del Emprendimiento</h4>
+          <div class="inline-form">
+            <input type="text" id="settingsBusinessName" class="input" placeholder="Ej: Pesca & Aventura" />
+            <button type="button" id="btnSaveBusinessName" class="btn btn-secondary">Guardar</button>
+          </div>
+        </div>
+
+        <!-- Option A: Active Server / LAN / Cloud Server -->
+        <div class="sync-block">
+          <h4>1. Conexión directa entre dispositivos (Activa)</h4>
+          <p class="text-sm text-muted">
+            Todos los dispositivos que abran la dirección del sistema comparten stock, ventas y clientes en tiempo real automáticamente.
+          </p>
+          <div id="lanUrlsList" class="lan-urls-box"></div>
+          <p class="text-xs text-muted">
+            En Android: Abrí el enlace en Chrome y tocá <strong>"Instalar aplicación"</strong> o el menú <strong>⋮ → Agregar a la pantalla principal</strong> para usarla como una app más del celular.
+          </p>
+        </div>
+
+        <!-- Option B: External Supabase Cloud Sync (Optional for static hosting / 4G anywhere) -->
+        <div class="sync-block">
+          <h4>2. Base de Datos en la Nube 24/7 con Supabase (Opcional)</h4>
+          <p class="text-sm text-muted">
+            Si alojás la web en un servicio gratuito (como Netlify/Vercel) o querés sincronizar por 4G sin servidor propio, podés conectar un proyecto gratuito de <strong>Supabase</strong>:
+          </p>
+          <div class="form-grid-2">
+            <div>
+              <label for="supabaseUrlInput" class="field-label-sm">Supabase Project URL</label>
+              <input type="url" id="supabaseUrlInput" class="input input-sm" placeholder="https://xxxx.supabase.co" />
+            </div>
+            <div>
+              <label for="supabaseKeyInput" class="field-label-sm">Supabase Anon Public Key</label>
+              <input type="password" id="supabaseKeyInput" class="input input-sm" placeholder="eyJhbGciOiJIUzI1Ni..." />
+            </div>
+          </div>
+          <div class="sync-btn-row">
+            <button type="button" id="btnSaveSupabase" class="btn btn-primary btn-sm">Conectar Nube Supabase</button>
+            <button type="button" id="btnDisconnectSupabase" class="btn btn-secondary btn-sm">Usar Servidor Integrado</button>
+            <button type="button" id="btnCopySqlSchema" class="btn btn-outline btn-sm">Copiar tabla SQL para Supabase</button>
+          </div>
+        </div>
+
+        <!-- Backup & Reset -->
+        <div class="sync-block">
+          <h4>3. Respaldo de Datos (Copia de Seguridad)</h4>
+          <div class="sync-btn-row">
+            <button type="button" id="btnExportBackup" class="btn btn-secondary btn-sm">
+              Descargar Respaldo (.json)
+            </button>
+            <label class="btn btn-secondary btn-sm file-btn">
+              Importar Respaldo (.json)
+              <input type="file" id="inputImportBackup" accept=".json" hidden />
+            </label>
+            <button type="button" id="btnClearAllData" class="btn btn-danger btn-sm">
+              Vaciar datos de prueba
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast notification -->
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
