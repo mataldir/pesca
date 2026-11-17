@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pesca-pwa-v2';
+const CACHE_NAME = 'pesca-pwa-v3';
 const ASSETS = [
   '/',
   '/index.html',
@@ -7,12 +7,14 @@ const ASSETS = [
   '/manifest.json',
   '/icon.svg'
 ];
+
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
   );
   self.skipWaiting();
 });
+
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
@@ -23,6 +25,7 @@ self.addEventListener('activate', (event) => {
   );
   self.clients.claim();
 });
+
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin || url.pathname.startsWith('/api/')) {

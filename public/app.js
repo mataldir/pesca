@@ -189,6 +189,14 @@ function updateSyncIndicator(statusType, text) {
   label.textContent = text;
 }
 
+function isStateEmpty(s) {
+  return !s || (
+    (!Array.isArray(s.products) || s.products.length === 0) &&
+    (!Array.isArray(s.clients) || s.clients.length === 0) &&
+    (!Array.isArray(s.sales) || s.sales.length === 0)
+  );
+}
+
 // Supabase REST helper for optional static-cloud mode
 async function pullFromSupabase() {
   if (!supabaseConfig) return;
@@ -208,6 +216,18 @@ async function pullFromSupabase() {
         applyIncomingState(remoteState);
       }
     } else {
+      // If local state is empty, try loading server seed/existing data before initializing Supabase
+      if (isStateEmpty(state)) {
+        try {
+          const serverRes = await fetch('/api/state', { cache: 'no-store' });
+          if (serverRes.ok) {
+            const serverState = await serverRes.json();
+            if (!isStateEmpty(serverState)) {
+              applyIncomingState(serverState);
+            }
+          }
+        } catch {}
+      }
       // Seed initial state to Supabase
       await pushToSupabase();
     }
@@ -223,7 +243,7 @@ async function pushToSupabase() {
   saveLocalState();
   try {
     const endpoint = `${supabaseConfig.url.replace(/\/$/, '')}/rest/v1/pesca_sync_store`;
-    await fetch(endpoint, {
+    const res = await fetch(endpoint, {
       method: 'POST',
       headers: {
         apikey: supabaseConfig.key,
@@ -244,6 +264,7 @@ async function pushToSupabase() {
         updated_at: state.updatedAt
       })
     });
+    if (!res.ok) throw new Error('Error guardando en Supabase');
     // Also mirror to local server if running
     fetch('/api/sync/import', {
       method: 'POST',
