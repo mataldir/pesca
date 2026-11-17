@@ -792,6 +792,10 @@ async function handleConfirmSale() {
         const data = await res.json();
         createdSale = data.sale;
         applyIncomingState(data.state);
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        showToast(errData.error || 'No se pudo registrar la venta');
+        return;
       }
     } catch {}
   }
@@ -813,8 +817,11 @@ async function handleConfirmSale() {
     let subtotal = 0;
     const saleItems = cart.map((c) => {
       const prod = state.products.find((p) => p.id === c.productId);
+      let stockDeducted = 0;
       if (prod) {
-        prod.stock = Math.max(0, prod.stock - c.quantity);
+        const available = Math.max(0, Number(prod.stock) || 0);
+        stockDeducted = Math.min(available, c.quantity);
+        prod.stock = available - stockDeducted;
         prod.updatedAt = new Date().toISOString();
       }
       const itemSub = c.quantity * c.unitPrice;
@@ -825,6 +832,7 @@ async function handleConfirmSale() {
         name: c.name,
         unitPrice: c.unitPrice,
         quantity: c.quantity,
+        stockDeducted,
         subtotal: itemSub
       };
     });
@@ -1617,7 +1625,13 @@ async function cancelSale(saleId) {
   (removed.items || []).forEach((item) => {
     if (item.productId) {
       const prod = state.products.find((p) => p.id === item.productId);
-      if (prod) prod.stock += Number(item.quantity) || 0;
+      if (prod) {
+        const restoreQty = typeof item.stockDeducted === 'number'
+          ? Math.max(0, Math.round(item.stockDeducted))
+          : Math.max(0, Math.round(Number(item.quantity) || 0));
+        prod.stock += restoreQty;
+        prod.updatedAt = new Date().toISOString();
+      }
     }
   });
   saveLocalState();

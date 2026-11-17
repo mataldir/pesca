@@ -202,6 +202,7 @@ function getInitialSeedData() {
           name: 'Caña Fibra Maciza 2.10m (2 Tramos)',
           unitPrice: 29000,
           quantity: 1,
+          stockDeducted: 1,
           subtotal: 29000
         },
         {
@@ -210,6 +211,7 @@ function getInitialSeedData() {
           name: 'Mosquetón con Esmerillón Nº 3 (Blíster x10)',
           unitPrice: 2200,
           quantity: 2,
+          stockDeducted: 2,
           subtotal: 4400
         },
         {
@@ -218,6 +220,7 @@ function getInitialSeedData() {
           name: 'Anzuelos Pata Larga Nº 3/0 (Sobre x10)',
           unitPrice: 3100,
           quantity: 1,
+          stockDeducted: 1,
           subtotal: 3100
         }
       ],
@@ -241,6 +244,7 @@ function getInitialSeedData() {
           name: 'Señuelo Minnow Media Agua 11cm',
           unitPrice: 11500,
           quantity: 2,
+          stockDeducted: 2,
           subtotal: 23000
         },
         {
@@ -249,6 +253,7 @@ function getInitialSeedData() {
           name: 'Multifilamento 4 Hebras 0.23mm x 100m',
           unitPrice: 12800,
           quantity: 1,
+          stockDeducted: 1,
           subtotal: 12800
         }
       ],
@@ -585,8 +590,11 @@ const server = http.createServer(async (req, res) => {
         subtotal += itemSubtotal;
 
         const prod = store.products.find((p) => p.id === item.productId);
+        let stockDeducted = 0;
         if (prod) {
-          prod.stock = Math.max(0, prod.stock - qty);
+          const available = Math.max(0, Number(prod.stock) || 0);
+          stockDeducted = Math.min(available, qty);
+          prod.stock = available - stockDeducted;
           prod.updatedAt = new Date().toISOString();
         }
 
@@ -596,6 +604,7 @@ const server = http.createServer(async (req, res) => {
           name: prod ? prod.name : String(item.name || 'Artículo'),
           unitPrice,
           quantity: qty,
+          stockDeducted,
           subtotal: itemSubtotal
         });
       }
@@ -638,7 +647,10 @@ const server = http.createServer(async (req, res) => {
           if (item.productId) {
             const prod = store.products.find((p) => p.id === item.productId);
             if (prod) {
-              prod.stock += Number(item.quantity) || 0;
+              const restoreQty = typeof item.stockDeducted === 'number'
+                ? Math.max(0, Math.round(item.stockDeducted))
+                : Math.max(0, Math.round(Number(item.quantity) || 0));
+              prod.stock += restoreQty;
               prod.updatedAt = new Date().toISOString();
             }
           }
